@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-dark antialiased overflow-x-hidden;
+  }
+}
+
+@layer utilities {
+  .noise-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.05;
+    background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+  }
+
+  .radius-sys {
+    @apply rounded-[2rem];
+  }
+  
+  .radius-sys-lg {
+    @apply rounded-[3rem];
+  }
+
+  .magnetic-btn {
+    @apply relative overflow-hidden inline-flex items-center justify-center;
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .magnetic-btn:hover {
+    transform: scale(1.03);
+  }
+
+  .magnetic-btn-bg {
+    @apply absolute inset-0 z-0 bg-accent translate-y-[101%];
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .magnetic-btn:hover .magnetic-btn-bg {
+    @apply translate-y-0;
+  }
+
+  .magnetic-btn-content {
+    @apply relative z-10;
+  }
+
+  .hover-lift {
+    transition: transform 0.2s ease-out;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-1px);
+  }
+}
