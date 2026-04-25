@@ -6,8 +6,6 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -22,24 +20,20 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        if (!otpSent) {
-          // Step 1: Sign up
-          const { error } = await supabase.auth.signUp({
-            email,
-            password,
-          });
-          if (error) throw error;
-          setOtpSent(true);
-          alert('Check your email (and spam folder) for the 6-digit OTP code!');
-        } else {
-          // Step 2: Verify OTP
-          const { error } = await supabase.auth.verifyOtp({
-            email,
-            token: otp,
-            type: 'signup'
-          });
-          if (error) throw error;
+        // Sign up
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        
+        if (error) throw error;
+        
+        if (data?.session) {
+          // If email confirmation is disabled in Supabase, they are instantly logged in
           navigate(from, { replace: true });
+        } else {
+          // If session is null, Supabase is waiting for email confirmation
+          alert('Signup successful! However, Supabase requires an email confirmation. If you are not receiving emails, please go to your Supabase Dashboard -> Authentication -> Providers -> Email, and turn OFF "Confirm email", then try logging in.');
         }
       } else {
         // Login
@@ -82,41 +76,23 @@ export default function Auth() {
               type="email"
               required
               value={email}
-              disabled={otpSent}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
+              className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors"
               placeholder="you@example.com"
             />
           </div>
           
-          {(!isSignUp || !otpSent) && (
-            <div>
-              <label className="block font-heading font-bold text-sm text-dark mb-1">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors"
-                placeholder="••••••••"
-              />
-            </div>
-          )}
-
-          {isSignUp && otpSent && (
-            <div>
-              <label className="block font-heading font-bold text-sm text-dark mb-1">6-Digit OTP Code</label>
-              <input
-                type="text"
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors tracking-widest"
-                placeholder="123456"
-                maxLength={6}
-              />
-            </div>
-          )}
+          <div>
+            <label className="block font-heading font-bold text-sm text-dark mb-1">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors"
+              placeholder="••••••••"
+            />
+          </div>
           
           <button
             type="submit"
@@ -125,7 +101,7 @@ export default function Auth() {
           >
             <span className="magnetic-btn-bg bg-accent"></span>
             <span className="magnetic-btn-content">
-              {loading ? 'Processing...' : (isSignUp ? (otpSent ? 'Verify OTP' : 'Sign up') : 'Login')}
+              {loading ? 'Processing...' : (isSignUp ? 'Sign up' : 'Login')}
             </span>
           </button>
         </form>
@@ -134,7 +110,6 @@ export default function Auth() {
           <button
             onClick={() => {
               setIsSignUp(!isSignUp);
-              setOtpSent(false);
               setError(null);
             }}
             className="font-sans text-sm text-dark/60 hover:text-dark transition-colors"
