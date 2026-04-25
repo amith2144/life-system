@@ -6,6 +6,8 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -20,14 +22,27 @@ export default function Auth() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        // Security 4.5: Don't leak raw Supabase errors if possible, but for auth we can show the message safely.
-        alert('Check your email for the login link!');
+        if (!otpSent) {
+          // Step 1: Sign up
+          const { error } = await supabase.auth.signUp({
+            email,
+            password,
+          });
+          if (error) throw error;
+          setOtpSent(true);
+          alert('Check your email (and spam folder) for the 6-digit OTP code!');
+        } else {
+          // Step 2: Verify OTP
+          const { error } = await supabase.auth.verifyOtp({
+            email,
+            token: otp,
+            type: 'signup'
+          });
+          if (error) throw error;
+          navigate(from, { replace: true });
+        }
       } else {
+        // Login
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -48,10 +63,10 @@ export default function Auth() {
       
       <div className="w-full max-w-md bg-white radius-sys border border-dark/10 p-8 shadow-xl relative z-10">
         <h2 className="font-heading font-bold text-3xl mb-2 text-dark text-center">
-          {isSignUp ? 'Join Life System' : 'Initialize Session'}
+          {isSignUp ? 'Sign up' : 'Login'}
         </h2>
         <p className="font-sans text-dark/60 text-sm mb-8 text-center">
-          {isSignUp ? 'Create your system today.' : 'Access your dashboard.'}
+          {isSignUp ? 'Create an account to get started.' : 'Welcome back.'}
         </p>
 
         {error && (
@@ -62,27 +77,46 @@ export default function Auth() {
 
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
-            <label className="block font-heading font-bold text-sm text-dark mb-1">Email Designation</label>
+            <label className="block font-heading font-bold text-sm text-dark mb-1">Email</label>
             <input
               type="email"
               required
               value={email}
+              disabled={otpSent}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors"
-              placeholder="operator@system.com"
+              className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors disabled:opacity-50"
+              placeholder="you@example.com"
             />
           </div>
-          <div>
-            <label className="block font-heading font-bold text-sm text-dark mb-1">Passcode</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
+          
+          {(!isSignUp || !otpSent) && (
+            <div>
+              <label className="block font-heading font-bold text-sm text-dark mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors"
+                placeholder="••••••••"
+              />
+            </div>
+          )}
+
+          {isSignUp && otpSent && (
+            <div>
+              <label className="block font-heading font-bold text-sm text-dark mb-1">6-Digit OTP Code</label>
+              <input
+                type="text"
+                required
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full bg-background border border-dark/20 radius-sys px-4 py-3 font-data text-sm focus:outline-none focus:border-accent transition-colors tracking-widest"
+                placeholder="123456"
+                maxLength={6}
+              />
+            </div>
+          )}
           
           <button
             type="submit"
@@ -91,17 +125,21 @@ export default function Auth() {
           >
             <span className="magnetic-btn-bg bg-accent"></span>
             <span className="magnetic-btn-content">
-              {loading ? 'Processing...' : (isSignUp ? 'Establish Identity' : 'Authenticate')}
+              {loading ? 'Processing...' : (isSignUp ? (otpSent ? 'Verify OTP' : 'Sign up') : 'Login')}
             </span>
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => setIsSignUp(!isSignUp)}
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setOtpSent(false);
+              setError(null);
+            }}
             className="font-sans text-sm text-dark/60 hover:text-dark transition-colors"
           >
-            {isSignUp ? 'Already established? Authenticate here.' : 'No identity found? Establish one.'}
+            {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign up"}
           </button>
         </div>
       </div>
